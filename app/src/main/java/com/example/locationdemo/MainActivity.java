@@ -42,9 +42,12 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.RandomAccessFile;
 import java.util.List;
 import java.util.Objects;
 
@@ -94,7 +97,7 @@ public class MainActivity extends AppCompatActivity implements TencentLocationLi
 
         getCpuInfo();
         getSignalInfo();
-
+        getCpuUsageByCmd();
 
     }
 
@@ -218,34 +221,32 @@ public class MainActivity extends AppCompatActivity implements TencentLocationLi
             return;
         }
         List<CellInfo> cellInfoList = tm.getAllCellInfo();
-        if (cellInfoList != null)
+        Log.d(TAG, "getSignalInfo: cellInfoList" + cellInfoList.toString());
+        StringBuilder sb = new StringBuilder();
+        for (CellInfo cellInfo : cellInfoList)
         {
-            StringBuilder sb = new StringBuilder();
-            for (CellInfo cellInfo : cellInfoList)
+            if (cellInfo instanceof CellInfoLte)
             {
-                if (cellInfo instanceof CellInfoLte)
-                {
-                    CellSignalStrengthLte cellSignalStrengthLte = ((CellInfoLte)cellInfo).getCellSignalStrength();
-                    Log.d(TAG, "getSignalInfo: Asu Level: " + cellSignalStrengthLte.getAsuLevel());
-                    Log.d(TAG, "getSignalInfo: Cqi: " + cellSignalStrengthLte.getCqi());
-                    Log.d(TAG, "getSignalInfo: Dbm: " + cellSignalStrengthLte.getDbm());
-                    Log.d(TAG, "getSignalInfo: Level: " + cellSignalStrengthLte.getLevel());
-                    Log.d(TAG, "getSignalInfo: Rsrp: " + cellSignalStrengthLte.getRsrp());
-                    Log.d(TAG, "getSignalInfo: Rsrq: " + cellSignalStrengthLte.getRsrq());
-                    Log.d(TAG, "getSignalInfo: Rssi: " + cellSignalStrengthLte.getRssi());
-                    Log.d(TAG, "getSignalInfo: Rssnr: " + cellSignalStrengthLte.getRssnr());
-                    Log.d(TAG, "getSignalInfo: TimingAdvance: " + cellSignalStrengthLte.getTimingAdvance());
-                    sb.append("Asu Level: ").append(cellSignalStrengthLte.getAsuLevel())
-                            .append("\nCqi: ").append(cellSignalStrengthLte.getCqi())
-                            .append("\nDbm: ").append(cellSignalStrengthLte.getDbm())
-                            .append("\nLevel: ").append(cellSignalStrengthLte.getLevel())
-                            .append("\nRsrp: ").append(cellSignalStrengthLte.getRsrp())
-                            .append("\nRsrq: ").append(cellSignalStrengthLte.getRsrq())
-                            .append("\nRssi: ").append(cellSignalStrengthLte.getRssi())
-                            .append("\nRssnr: ").append(cellSignalStrengthLte.getRssnr());
-                    gmsText.setText(sb.toString());
-                    break;
-                }
+                CellSignalStrengthLte cellSignalStrengthLte = ((CellInfoLte)cellInfo).getCellSignalStrength();
+                Log.d(TAG, "getSignalInfo: Asu Level: " + cellSignalStrengthLte.getAsuLevel());
+                Log.d(TAG, "getSignalInfo: Cqi: " + cellSignalStrengthLte.getCqi());
+                Log.d(TAG, "getSignalInfo: Dbm: " + cellSignalStrengthLte.getDbm());
+                Log.d(TAG, "getSignalInfo: Level: " + cellSignalStrengthLte.getLevel());
+                Log.d(TAG, "getSignalInfo: Rsrp: " + cellSignalStrengthLte.getRsrp());
+                Log.d(TAG, "getSignalInfo: Rsrq: " + cellSignalStrengthLte.getRsrq());
+                Log.d(TAG, "getSignalInfo: Rssi: " + cellSignalStrengthLte.getRssi());
+                Log.d(TAG, "getSignalInfo: Rssnr: " + cellSignalStrengthLte.getRssnr());
+                Log.d(TAG, "getSignalInfo: TimingAdvance: " + cellSignalStrengthLte.getTimingAdvance());
+                sb.append("Asu Level: ").append(cellSignalStrengthLte.getAsuLevel())
+                        .append("\nCqi: ").append(cellSignalStrengthLte.getCqi())
+                        .append("\nDbm: ").append(cellSignalStrengthLte.getDbm())
+                        .append("\nLevel: ").append(cellSignalStrengthLte.getLevel())
+                        .append("\nRsrp: ").append(cellSignalStrengthLte.getRsrp())
+                        .append("\nRsrq: ").append(cellSignalStrengthLte.getRsrq())
+                        .append("\nRssi: ").append(cellSignalStrengthLte.getRssi())
+                        .append("\nRssnr: ").append(cellSignalStrengthLte.getRssnr());
+                gmsText.setText(sb.toString());
+                break;
             }
         }
     }
@@ -307,16 +308,20 @@ public class MainActivity extends AppCompatActivity implements TencentLocationLi
         int coreNum = getCpuCoreNum();
         int maxFreq = getCpuMaxFreq();
         String loadAvg = getCpuLoadAverage();
+//        float cpuUsage = getCpuUsage();
+
         Log.d(TAG, "getCpuInfo: cpuName: " + cpuName);
         Log.d(TAG, "getCpuInfo: core: " + coreNum);
         Log.d(TAG, "getCpuInfo: maxFreq: " + maxFreq + "MHz");
         Log.d(TAG, "getCpuInfo: loadAvg: " + loadAvg);
+//        Log.d(TAG, "getCpuInfo: cpuUsage: " +cpuUsage);
 
         StringBuilder sb = new StringBuilder();
         sb.append("CPU 型号: ").append(cpuName)
                 .append("\nCPU 核心数: ").append(coreNum)
                 .append("\n最大频率: ").append(maxFreq).append("MHz")
                 .append("\nLoad Average: ").append(loadAvg);
+//                .append("\nCPU Usage: ").append(cpuUsage);
 
         cpuText.setText(sb.toString());
     }
@@ -433,9 +438,119 @@ public class MainActivity extends AppCompatActivity implements TencentLocationLi
         return loadAvgStrs;
     }
 
+
     private int getBatteryLevel() {
         BatteryManager batteryManager = (BatteryManager) getSystemService(BATTERY_SERVICE);
         return batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
     }
 
+    // 7.0以上版本无法读取/proc/stat
+    private float getCpuUsage() {
+        try {
+            RandomAccessFile reader = new RandomAccessFile("/proc/stat", "r");
+            String load = reader.readLine();
+
+            String[] toks = load.split(" ");
+
+            long idle1 = Long.parseLong(toks[5]);
+            long cpu1 = Long.parseLong(toks[2])
+                    + Long.parseLong(toks[3])
+                    + Long.parseLong(toks[4])
+                    + Long.parseLong(toks[6])
+                    + Long.parseLong(toks[7])
+                    + Long.parseLong(toks[8]);
+
+            Log.d(TAG, "getCpuUsage: cpu1=" +cpu1);
+            try {
+                Thread.sleep(360);
+            }
+            catch (Exception e)
+            {
+                e.printStackTrace();
+            }
+
+            reader.seek(0);
+            load = reader.readLine();
+            reader.close();
+
+            toks = load.split(" ");
+
+            long idle2 = Long.parseLong(toks[5]);
+            long cpu2 = Long.parseLong(toks[2])
+                    + Long.parseLong(toks[3])
+                    + Long.parseLong(toks[4])
+                    + Long.parseLong(toks[6])
+                    + Long.parseLong(toks[7])
+                    + Long.parseLong(toks[8]);
+
+            Log.d(TAG, "getCpuUsage: cpu2=" + cpu2);
+
+            return (float)(cpu2 - cpu1) / ((cpu2 + idle2) - (cpu1 + idle1));
+
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+
+        return -1;
+    }
+    // cat命令也不能读取
+    private void getCpuByCat() {
+        // 通过uptime命令获得
+        StringBuilder cpuUsage = new StringBuilder();
+        String cpuStatLine = "";
+        ProcessBuilder cmd;
+        try {
+            String[] args = {"/system/bin/cat","/proc/stat"};
+            cmd = new ProcessBuilder(args);
+            Process process = cmd.start();
+            InputStream in = process.getInputStream();
+            int ch;
+            while ((ch = in.read()) != -1) {
+                cpuUsage.append((char)ch);
+            }
+            in.close();
+            Log.d(TAG, "getCpuStat: stat: " + cpuUsage);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void getCpuUsageByCmd() {
+        Process process;
+        StringBuilder sb = new StringBuilder();
+        String line = "";
+        String cmd = "dumpsys battery";
+        Log.d(TAG, "getCpuUsageByCmd: begin");
+        try {
+            process = Runtime.getRuntime().exec("dumpsys cpuinfo");
+            BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+            int read;
+            char[] buffer = new char[4096];
+            StringBuffer output = new StringBuffer();
+            while ((read = br.read(buffer)) > 0) {
+                output.append(buffer, 0, read);
+            }
+
+//            while (((line = br.readLine()) != null)) {
+//                // 去掉空白行数据
+//                line = line.trim();
+//                Log.d(TAG, "getCpuUsageByCmd: " + line);
+//                if (line.equals("")) {
+//                    continue;
+//                }
+//                sb.append(line);
+//                sb.append("\r\n");
+//            }
+            Log.d(TAG, "getCpuUsageByCmd: " + output.toString());
+            try {
+                process.waitFor();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
 }
