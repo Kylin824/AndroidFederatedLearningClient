@@ -2,30 +2,25 @@ package com.example.locationdemo;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.TrafficStats;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.Looper;
+import android.os.Message;
 import android.telephony.CellInfo;
-import android.telephony.CellInfoCdma;
-import android.telephony.CellInfoGsm;
 import android.telephony.CellInfoLte;
-import android.telephony.CellInfoWcdma;
-import android.telephony.CellLocation;
-import android.telephony.CellSignalStrengthCdma;
-import android.telephony.CellSignalStrengthGsm;
 import android.telephony.CellSignalStrengthLte;
-import android.telephony.CellSignalStrengthWcdma;
-import android.telephony.ServiceState;
-import android.telephony.SignalStrength;
 import android.telephony.TelephonyManager;
-import android.telephony.cdma.CdmaCellLocation;
-import android.telephony.gsm.GsmCellLocation;
 import android.text.format.Formatter;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -42,7 +37,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -50,6 +44,9 @@ import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.EasyPermissions;
@@ -61,8 +58,13 @@ public class MainActivity extends AppCompatActivity implements TencentLocationLi
     private TextView wifiText;
     private TextView cpuText;
     private TextView gmsText;
+    private Button monitorBtn;
+    private static TextView speedText;
     private TencentLocationManager mLocationManager;
     private static final String TAG = "MainActivity";
+    private static final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
+    private static long lastTotalRxBytes = 0;
+    private static long lastTimeStamp = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,6 +76,16 @@ public class MainActivity extends AppCompatActivity implements TencentLocationLi
         wifiText = findViewById(R.id.wifi_text);
         cpuText = findViewById(R.id.cpu_text);
         gmsText = findViewById(R.id.signal_text);
+        speedText = findViewById(R.id.speed_text);
+        monitorBtn = findViewById(R.id.monitor_btn);
+
+        monitorBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, MonitorActivity.class);
+                startActivity(intent);
+            }
+        });
 
         requirePermission();
 
@@ -97,9 +109,19 @@ public class MainActivity extends AppCompatActivity implements TencentLocationLi
 
         getCpuInfo();
         getSignalInfo();
-        getCpuUsageByCmd();
 
+        scheduledExecutorService.scheduleAtFixedRate(this::getDownloadRate, 0, 2, TimeUnit.SECONDS);
     }
+
+    private Handler handler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(Message msg) {
+            String currentSpeed = "实时网速: " + msg.arg1 + "Kb/s";
+            // 调用setText()方法时如果传入int型是不会被当成内容而是resourceID来使用
+            speedText.setText(currentSpeed);
+            return false;
+        }
+    });
 
     @AfterPermissionGranted(1)
     private void requirePermission() {
@@ -515,11 +537,9 @@ public class MainActivity extends AppCompatActivity implements TencentLocationLi
         }
     }
 
+    // dumpsys cpuinfo也不能使用
     private void getCpuUsageByCmd() {
         Process process;
-        StringBuilder sb = new StringBuilder();
-        String line = "";
-        String cmd = "dumpsys battery";
         Log.d(TAG, "getCpuUsageByCmd: begin");
         try {
             process = Runtime.getRuntime().exec("dumpsys cpuinfo");
@@ -527,7 +547,7 @@ public class MainActivity extends AppCompatActivity implements TencentLocationLi
 
             int read;
             char[] buffer = new char[4096];
-            StringBuffer output = new StringBuffer();
+            StringBuilder output = new StringBuilder();
             while ((read = br.read(buffer)) > 0) {
                 output.append(buffer, 0, read);
             }
@@ -553,4 +573,25 @@ public class MainActivity extends AppCompatActivity implements TencentLocationLi
         }
 
     }
+
+
+
+
+
+    // 在Android 4.0以上，网络连接不能放在主线程上
+    private void getDownloadRate() {
+        String netSpeed;
+        long nowTotalRxBytes = TrafficStats.getTotalRxBytes() / 1024; // 转为KB;
+        long nowTimeStamp = System.currentTimeMillis();
+        long speed = ((nowTotalRxBytes - lastTotalRxBytes) * 1000 / (nowTimeStamp - lastTimeStamp));// 毫秒转换
+
+        lastTimeStamp = nowTimeStamp;
+        lastTotalRxBytes = nowTotalRxBytes;
+        netSpeed  = speed + " kb/s";
+        Log.d(TAG, "getDownloadRate: speed: " + netSpeed);
+        Message msg = new Message();
+        msg.arg1 = (int) speed;
+        handler.sendMessage(msg);
+    }
+
 }
