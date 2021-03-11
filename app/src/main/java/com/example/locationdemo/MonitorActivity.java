@@ -6,7 +6,11 @@ import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.net.TrafficStats;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
@@ -16,6 +20,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.provider.Settings;
 import android.telephony.CellInfo;
 import android.telephony.CellInfoLte;
 import android.telephony.CellSignalStrengthLte;
@@ -26,6 +31,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.tencent.map.geolocation.TencentLocation;
 import com.tencent.map.geolocation.TencentLocationListener;
@@ -46,7 +52,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class MonitorActivity extends AppCompatActivity implements TencentLocationListener {
+public class MonitorActivity extends AppCompatActivity {
 
     private TextView gpsText;
     private TextView memoryText;
@@ -72,17 +78,23 @@ public class MonitorActivity extends AppCompatActivity implements TencentLocatio
         gmsText = findViewById(R.id.signal_text);
         speedText = findViewById(R.id.speed_text);
 
-        // 获取gps定位信息
-        mLocationManager = TencentLocationManager.getInstance(this);
-        // 连续定位
-//        TencentLocationRequest locationRequest = TencentLocationRequest.create()
-//                .setRequestLevel(TencentLocationRequest.REQUEST_LEVEL_POI)
-//                .setInterval(10000) // 定位周期(位置监听器回调周期), 单位为ms(毫秒)
-//                .setAllowGPS(true); //允许使用GPS
-//        mLocationManager.requestLocationUpdates(locationRequest, this);
+//          by 腾讯 api
+//        // 获取gps定位信息
+//        mLocationManager = TencentLocationManager.getInstance(this);
+//        // 连续定位
+////        TencentLocationRequest locationRequest = TencentLocationRequest.create()
+////                .setRequestLevel(TencentLocationRequest.REQUEST_LEVEL_POI)
+////                .setInterval(10000) // 定位周期(位置监听器回调周期), 单位为ms(毫秒)
+////                .setAllowGPS(true); //允许使用GPS
+////        mLocationManager.requestLocationUpdates(locationRequest, this);
+//
+//        // 单次定位
+//        mLocationManager.requestSingleFreshLocation(null, this, Looper.getMainLooper());
 
-        // 单次定位
-        mLocationManager.requestSingleFreshLocation(null, this, Looper.getMainLooper());
+
+        // by 原始gps api
+        String gpsInfo = getGpsInfo();
+        gpsText.setText(gpsInfo);
 
         String wifiInfo = getWifiInfo();
         wifiText.setText(wifiInfo);
@@ -106,56 +118,89 @@ public class MonitorActivity extends AppCompatActivity implements TencentLocatio
         }
     });
 
-    // 用于接收定位结果
-    @Override
-    public void onLocationChanged(TencentLocation tencentLocation, int i, String s) {
-        String msg = null;
-        if (TencentLocation.ERROR_OK == 0) {
-            Log.d(TAG, "onLocationChanged: 定位成功");
-            // 定位成功
-            if (tencentLocation != null) {
-                StringBuilder sb = new StringBuilder();
-
-                sb.append("来源(gps/network): ").append(tencentLocation.getProvider())
-                        .append("\n纬度: ").append(tencentLocation.getLatitude())
-                        .append("\n经度: ").append(tencentLocation.getLongitude())
-//                        .append(",海拔: ").append(tencentLocation.getAltitude())
-                        .append("\n精度: ").append(tencentLocation.getAccuracy());
-//                        .append(",国家: ").append(tencentLocation.getNation())
-//                        .append(",省: ").append(tencentLocation.getProvince())
-//                        .append(",市: ").append(tencentLocation.getCity())
-//                        .append(",区: ").append(tencentLocation.getDistrict())
-//                        .append(",镇: ").append(tencentLocation.getTown())
-//                        .append(",村=").append(tencentLocation.getVillage())
-//                        .append(", 街道").append(tencentLocation.getStreet())
-//                        .append(", 门号").append(tencentLocation.getStreetNo())
-//                        .append(", POI: ").append(tencentLocation.getPoiList().get(0).getName());
-                // 注意, 根据国家相关法规, wgs84坐标下无法提供地址信息
-//                        .append("{84坐标下不提供地址!}");
-                msg = sb.toString();
-                Log.d(TAG, "onLocationChanged: " + msg);
-                gpsText.setText(msg);
-            }
-        } else {
-            // 定位失败
-            Log.d(TAG, "onLocationChanged: 定位失败");
-        }
-    }
-
-    // 用于接收GPS、WiFi、Cell状态码
-    @Override
-    public void onStatusUpdate(String s, int i, String s1) {
-
-    }
+//    // 用于接收定位结果
+//    @Override
+//    public void onLocationChanged(TencentLocation tencentLocation, int i, String s) {
+//        String msg = null;
+//        if (TencentLocation.ERROR_OK == 0) {
+//            Log.d(TAG, "onLocationChanged: 定位成功");
+//            // 定位成功
+//            if (tencentLocation != null) {
+//                StringBuilder sb = new StringBuilder();
+//
+//                sb.append("来源(gps/network): ").append(tencentLocation.getProvider())
+//                        .append("\n纬度: ").append(tencentLocation.getLatitude())
+//                        .append("\n经度: ").append(tencentLocation.getLongitude())
+////                        .append(",海拔: ").append(tencentLocation.getAltitude())
+//                        .append("\n精度: ").append(tencentLocation.getAccuracy());
+////                        .append(",国家: ").append(tencentLocation.getNation())
+////                        .append(",省: ").append(tencentLocation.getProvince())
+////                        .append(",市: ").append(tencentLocation.getCity())
+////                        .append(",区: ").append(tencentLocation.getDistrict())
+////                        .append(",镇: ").append(tencentLocation.getTown())
+////                        .append(",村=").append(tencentLocation.getVillage())
+////                        .append(", 街道").append(tencentLocation.getStreet())
+////                        .append(", 门号").append(tencentLocation.getStreetNo())
+////                        .append(", POI: ").append(tencentLocation.getPoiList().get(0).getName());
+//                // 注意, 根据国家相关法规, wgs84坐标下无法提供地址信息
+////                        .append("{84坐标下不提供地址!}");
+//                msg = sb.toString();
+//                Log.d(TAG, "onLocationChanged: " + msg);
+//                gpsText.setText(msg);
+//            }
+//        } else {
+//            // 定位失败
+//            Log.d(TAG, "onLocationChanged: 定位失败");
+//        }
+//    }
+//
+//    // 用于接收GPS、WiFi、Cell状态码
+//    @Override
+//    public void onStatusUpdate(String s, int i, String s1) {
+//
+//    }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mLocationManager.removeUpdates(this);
-        scheduledExecutorService.shutdown();
+        // mLocationManager.removeUpdates(this);
+        // scheduledExecutorService.shutdown();
         Log.d(TAG, "onDestroy: finish monitoring");
     }
 
+    private String getGpsInfo() {
+        Log.d(TAG, "getGpsInfo: ttttttttttttt");
+        String msg = "";
+        LocationManager locationManager = (LocationManager)getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
+        String provider = LocationManager.GPS_PROVIDER;
+        try {
+            Location location = locationManager.getLastKnownLocation(provider);
+            if (location != null) {
+                Log.d(TAG, "getGpsInfo: " + location.getTime());
+                // 显示当前设备的位置信息
+                StringBuilder sb = new StringBuilder();
+                sb.append("当前的位置信息：\n");
+                sb.append("精度：").append(location.getLongitude()).append("\n");
+                sb.append("纬度：").append(location.getLatitude()).append("\n");
+                sb.append("高度：").append(location.getAltitude()).append("\n");
+                sb.append("速度：").append(location.getSpeed()).append("\n");
+                sb.append("方向：").append(location.getBearing()).append("\n");
+                sb.append("定位精度：").append(location.getAccuracy()).append("\n");
+                msg = sb.toString();
+                Log.d(TAG, "getGpsInfo: " + msg);
+                return msg;
+            }
+            else {
+                Log.d(TAG, "getGpsInfo: msg is null");
+            }
+        }
+        catch (SecurityException e) {
+            Log.d(TAG, "getGpsInfo: " + e.toString());
+        }
+        // locationManager.requestLocationUpdates(provider, 5000, 1, locationListener);
+        return msg;
+    }
+    
     // 获取wifi信息
     private String getWifiInfo() {
         // Wifi的连接速度及信号强度
