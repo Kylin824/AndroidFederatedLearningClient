@@ -24,6 +24,10 @@
         android:theme="@style/Theme.LocationDemo">
 
         <activity
+            android:name=".FederatedActivity"
+            android:parentActivityName=".MainActivity" />
+
+        <activity
             android:name=".DrawActivity"
             android:parentActivityName=".MainActivity" />
 

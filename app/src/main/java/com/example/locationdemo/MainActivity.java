@@ -55,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
 
     private Button monitorBtn;
     private Button drawBtn;
+    private Button trainBtn;
     private static final String TAG = "MainActivity";
 
     @Override
@@ -64,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
 
         monitorBtn = findViewById(R.id.monitor_btn);
         drawBtn = findViewById(R.id.draw_btn);
+        trainBtn = findViewById(R.id.train_btn);
 
         monitorBtn.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, MonitorActivity.class);
@@ -72,6 +74,11 @@ public class MainActivity extends AppCompatActivity {
 
         drawBtn.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, DrawActivity.class);
+            startActivity(intent);
+        });
+
+        trainBtn.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, FederatedActivity.class);
             startActivity(intent);
         });
 

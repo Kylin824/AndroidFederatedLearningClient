@@ -26,9 +26,9 @@
     <!--    测速表格线颜色-->
     <color name="sp_speed_grid_color">#C5C4C4</color>
 
-    <color name="colorPrimary">#3F51B5</color>
-    <color name="colorPrimaryDark">#303F9F</color>
-    <color name="colorAccent">#FF4081</color>
+<!--    <color name="colorPrimary">#3F51B5</color>-->
+<!--    <color name="colorPrimaryDark">#303F9F</color>-->
+<!--    <color name="colorAccent">#FF4081</color>-->
     <color name="colorBlack">#000000</color>
     <color name="colorwhite">#FFFF</color>
 
@@ -40,4 +40,12 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <color name="colorPrimary">#333</color>
+    <color name="colorPrimaryDark">#111</color>
+    <color name="colorAccent">#F14242</color>
+
+    <color name="black_overlay">#66000000</color>
+    <color name="green_tint">#9E11C553</color>
+    <color name="red">#F14242</color>
 </resources>

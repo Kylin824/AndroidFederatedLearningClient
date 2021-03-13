@@ -3,11 +3,13 @@ package com.example.locationdemo;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -23,8 +25,11 @@ import android.os.Message;
 import android.provider.Settings;
 import android.telephony.CellInfo;
 import android.telephony.CellInfoLte;
+import android.telephony.CellInfoWcdma;
 import android.telephony.CellSignalStrengthLte;
+import android.telephony.CellSignalStrengthWcdma;
 import android.telephony.TelephonyManager;
+import android.text.TextUtils;
 import android.text.format.Formatter;
 import android.util.Log;
 import android.widget.ArrayAdapter;
@@ -52,7 +57,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class MonitorActivity extends AppCompatActivity {
+public class MonitorActivity extends AppCompatActivity implements TencentLocationListener {
 
     private TextView gpsText;
     private TextView memoryText;
@@ -79,22 +84,22 @@ public class MonitorActivity extends AppCompatActivity {
         speedText = findViewById(R.id.speed_text);
 
 //          by 腾讯 api
-//        // 获取gps定位信息
-//        mLocationManager = TencentLocationManager.getInstance(this);
-//        // 连续定位
-////        TencentLocationRequest locationRequest = TencentLocationRequest.create()
-////                .setRequestLevel(TencentLocationRequest.REQUEST_LEVEL_POI)
-////                .setInterval(10000) // 定位周期(位置监听器回调周期), 单位为ms(毫秒)
-////                .setAllowGPS(true); //允许使用GPS
-////        mLocationManager.requestLocationUpdates(locationRequest, this);
-//
-//        // 单次定位
-//        mLocationManager.requestSingleFreshLocation(null, this, Looper.getMainLooper());
+        // 获取gps定位信息
+        mLocationManager = TencentLocationManager.getInstance(this);
+        // 连续定位
+//        TencentLocationRequest locationRequest = TencentLocationRequest.create()
+//                .setRequestLevel(TencentLocationRequest.REQUEST_LEVEL_POI)
+//                .setInterval(10000) // 定位周期(位置监听器回调周期), 单位为ms(毫秒)
+//                .setAllowGPS(true); //允许使用GPS
+//        mLocationManager.requestLocationUpdates(locationRequest, this);
+
+        // 单次定位
+        mLocationManager.requestSingleFreshLocation(null, this, Looper.getMainLooper());
 
 
-        // by 原始gps api
-        String gpsInfo = getGpsInfo();
-        gpsText.setText(gpsInfo);
+//        // by 原始gps api
+//        String gpsInfo = getGpsInfo();
+//        gpsText.setText(gpsInfo);
 
         String wifiInfo = getWifiInfo();
         wifiText.setText(wifiInfo);
@@ -118,47 +123,47 @@ public class MonitorActivity extends AppCompatActivity {
         }
     });
 
-//    // 用于接收定位结果
-//    @Override
-//    public void onLocationChanged(TencentLocation tencentLocation, int i, String s) {
-//        String msg = null;
-//        if (TencentLocation.ERROR_OK == 0) {
-//            Log.d(TAG, "onLocationChanged: 定位成功");
-//            // 定位成功
-//            if (tencentLocation != null) {
-//                StringBuilder sb = new StringBuilder();
-//
-//                sb.append("来源(gps/network): ").append(tencentLocation.getProvider())
-//                        .append("\n纬度: ").append(tencentLocation.getLatitude())
-//                        .append("\n经度: ").append(tencentLocation.getLongitude())
-////                        .append(",海拔: ").append(tencentLocation.getAltitude())
-//                        .append("\n精度: ").append(tencentLocation.getAccuracy());
-////                        .append(",国家: ").append(tencentLocation.getNation())
-////                        .append(",省: ").append(tencentLocation.getProvince())
-////                        .append(",市: ").append(tencentLocation.getCity())
-////                        .append(",区: ").append(tencentLocation.getDistrict())
-////                        .append(",镇: ").append(tencentLocation.getTown())
-////                        .append(",村=").append(tencentLocation.getVillage())
-////                        .append(", 街道").append(tencentLocation.getStreet())
-////                        .append(", 门号").append(tencentLocation.getStreetNo())
-////                        .append(", POI: ").append(tencentLocation.getPoiList().get(0).getName());
-//                // 注意, 根据国家相关法规, wgs84坐标下无法提供地址信息
-////                        .append("{84坐标下不提供地址!}");
-//                msg = sb.toString();
-//                Log.d(TAG, "onLocationChanged: " + msg);
-//                gpsText.setText(msg);
-//            }
-//        } else {
-//            // 定位失败
-//            Log.d(TAG, "onLocationChanged: 定位失败");
-//        }
-//    }
-//
-//    // 用于接收GPS、WiFi、Cell状态码
-//    @Override
-//    public void onStatusUpdate(String s, int i, String s1) {
-//
-//    }
+    // 用于接收定位结果
+    @Override
+    public void onLocationChanged(TencentLocation tencentLocation, int i, String s) {
+        String msg = null;
+        if (TencentLocation.ERROR_OK == 0) {
+            Log.d(TAG, "onLocationChanged: 定位成功");
+            // 定位成功
+            if (tencentLocation != null) {
+                StringBuilder sb = new StringBuilder();
+
+                sb.append("来源(gps/network): ").append(tencentLocation.getProvider())
+                        .append("\n纬度: ").append(tencentLocation.getLatitude())
+                        .append("\n经度: ").append(tencentLocation.getLongitude())
+//                        .append(",海拔: ").append(tencentLocation.getAltitude())
+                        .append("\n精度: ").append(tencentLocation.getAccuracy());
+//                        .append(",国家: ").append(tencentLocation.getNation())
+//                        .append(",省: ").append(tencentLocation.getProvince())
+//                        .append(",市: ").append(tencentLocation.getCity())
+//                        .append(",区: ").append(tencentLocation.getDistrict())
+//                        .append(",镇: ").append(tencentLocation.getTown())
+//                        .append(",村=").append(tencentLocation.getVillage())
+//                        .append(", 街道").append(tencentLocation.getStreet())
+//                        .append(", 门号").append(tencentLocation.getStreetNo())
+//                        .append(", POI: ").append(tencentLocation.getPoiList().get(0).getName());
+                // 注意, 根据国家相关法规, wgs84坐标下无法提供地址信息
+//                        .append("{84坐标下不提供地址!}");
+                msg = sb.toString();
+                Log.d(TAG, "onLocationChanged: " + msg);
+                gpsText.setText(msg);
+            }
+        } else {
+            // 定位失败
+            Log.d(TAG, "onLocationChanged: 定位失败");
+        }
+    }
+
+    // 用于接收GPS、WiFi、Cell状态码
+    @Override
+    public void onStatusUpdate(String s, int i, String s1) {
+
+    }
 
     @Override
     protected void onDestroy() {
@@ -168,39 +173,56 @@ public class MonitorActivity extends AppCompatActivity {
         Log.d(TAG, "onDestroy: finish monitoring");
     }
 
-    private String getGpsInfo() {
-        Log.d(TAG, "getGpsInfo: ttttttttttttt");
+    private String getGpsInfoRaw() {
         String msg = "";
-        LocationManager locationManager = (LocationManager)getApplicationContext().getSystemService(Context.LOCATION_SERVICE);
-        String provider = LocationManager.GPS_PROVIDER;
-        try {
-            Location location = locationManager.getLastKnownLocation(provider);
-            if (location != null) {
-                Log.d(TAG, "getGpsInfo: " + location.getTime());
-                // 显示当前设备的位置信息
-                StringBuilder sb = new StringBuilder();
-                sb.append("当前的位置信息：\n");
-                sb.append("精度：").append(location.getLongitude()).append("\n");
-                sb.append("纬度：").append(location.getLatitude()).append("\n");
-                sb.append("高度：").append(location.getAltitude()).append("\n");
-                sb.append("速度：").append(location.getSpeed()).append("\n");
-                sb.append("方向：").append(location.getBearing()).append("\n");
-                sb.append("定位精度：").append(location.getAccuracy()).append("\n");
-                msg = sb.toString();
-                Log.d(TAG, "getGpsInfo: " + msg);
-                return msg;
+        //获取地理位置管理器
+        LocationManager mLocationManager = (LocationManager) getApplicationContext().getSystemService(LOCATION_SERVICE);
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                && ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO:去请求权限后再获取
+            return null;
+        }
+        List<String> providers = mLocationManager.getProviders(true);
+        Location bestLocation = null;
+        for (String provider : providers) {
+            Location l = mLocationManager.getLastKnownLocation(provider);
+            if (l == null) {
+                continue;
             }
-            else {
-                Log.d(TAG, "getGpsInfo: msg is null");
+            if (bestLocation == null || l.getAccuracy() < bestLocation.getAccuracy()) {
+                bestLocation = l;
             }
         }
-        catch (SecurityException e) {
-            Log.d(TAG, "getGpsInfo: " + e.toString());
+        // 在一些手机5.0(api21)获取为空后，采用下面去兼容获取。
+        if (bestLocation == null) {
+            Criteria criteria = new Criteria();
+            criteria.setAccuracy(Criteria.ACCURACY_COARSE);
+            criteria.setAltitudeRequired(false);
+            criteria.setBearingRequired(false);
+            criteria.setCostAllowed(true);
+            criteria.setPowerRequirement(Criteria.POWER_LOW);
+            String provider = mLocationManager.getBestProvider(criteria, true);
+            if (!TextUtils.isEmpty(provider)) {
+                bestLocation = mLocationManager.getLastKnownLocation(provider);
+            }
         }
-        // locationManager.requestLocationUpdates(provider, 5000, 1, locationListener);
+        if (bestLocation != null) {
+            Log.d(TAG, "getGpsInfo: " + bestLocation.getTime());
+            // 显示当前设备的位置信息
+            StringBuilder sb = new StringBuilder();
+            sb.append("当前的位置信息：\n");
+            sb.append("精度：").append(bestLocation.getLongitude()).append("\n");
+            sb.append("纬度：").append(bestLocation.getLatitude()).append("\n");
+            sb.append("高度：").append(bestLocation.getAltitude()).append("\n");
+            sb.append("速度：").append(bestLocation.getSpeed()).append("\n");
+            sb.append("方向：").append(bestLocation.getBearing()).append("\n");
+            sb.append("定位精度：").append(bestLocation.getAccuracy()).append("\n");
+            msg = sb.toString();
+            Log.d(TAG, "getGpsInfo: " + msg);
+        }
         return msg;
     }
-    
+
     // 获取wifi信息
     private String getWifiInfo() {
         // Wifi的连接速度及信号强度
@@ -244,11 +266,10 @@ public class MonitorActivity extends AppCompatActivity {
         List<CellInfo> cellInfoList = tm.getAllCellInfo();
         Log.d(TAG, "getSignalInfo: cellInfoList" + cellInfoList.toString());
         StringBuilder sb = new StringBuilder();
-        for (CellInfo cellInfo : cellInfoList)
-        {
-            if (cellInfo instanceof CellInfoLte)
-            {
-                CellSignalStrengthLte cellSignalStrengthLte = ((CellInfoLte)cellInfo).getCellSignalStrength();
+        for (CellInfo cellInfo : cellInfoList) {
+            if (cellInfo instanceof CellInfoLte) {
+                Log.d(TAG, "getSignalInfo: lte");
+                CellSignalStrengthLte cellSignalStrengthLte = ((CellInfoLte) cellInfo).getCellSignalStrength();
                 Log.d(TAG, "getSignalInfo: Asu Level: " + cellSignalStrengthLte.getAsuLevel());
                 Log.d(TAG, "getSignalInfo: Cqi: " + cellSignalStrengthLte.getCqi());
                 Log.d(TAG, "getSignalInfo: Dbm: " + cellSignalStrengthLte.getDbm());
@@ -267,6 +288,20 @@ public class MonitorActivity extends AppCompatActivity {
                         .append("\nRssi: ").append(cellSignalStrengthLte.getRssi())
                         .append("\nRssnr: ").append(cellSignalStrengthLte.getRssnr());
                 gmsText.setText(sb.toString());
+                Log.d(TAG, "getSignalInfo: " + sb.toString());
+                break;
+            }
+            else if (cellInfo instanceof CellInfoWcdma) {
+                Log.d(TAG, "getSignalInfo: wcdma");
+                CellSignalStrengthWcdma cellSignalStrengthLte = ((CellInfoWcdma) cellInfo).getCellSignalStrength();
+                Log.d(TAG, "getSignalInfo: Asu Level: " + cellSignalStrengthLte.getAsuLevel());
+                Log.d(TAG, "getSignalInfo: Dbm: " + cellSignalStrengthLte.getDbm());
+                Log.d(TAG, "getSignalInfo: Level: " + cellSignalStrengthLte.getLevel());
+                sb.append("Asu Level: ").append(cellSignalStrengthLte.getAsuLevel())
+                        .append("\nDbm: ").append(cellSignalStrengthLte.getDbm())
+                        .append("\nLevel: ").append(cellSignalStrengthLte.getLevel());
+                gmsText.setText(sb.toString());
+                Log.d(TAG, "getSignalInfo: " + sb.toString());
                 break;
             }
         }
@@ -446,7 +481,7 @@ public class MonitorActivity extends AppCompatActivity {
             InputStream in = process.getInputStream();
             int ch;
             while ((ch = in.read()) != -1) {
-                loadAvgLine.append((char)ch);
+                loadAvgLine.append((char) ch);
             }
             in.close();
             Log.d(TAG, "getCpuLoadAverage: loadavg: " + loadAvgLine);
@@ -475,7 +510,7 @@ public class MonitorActivity extends AppCompatActivity {
 
         lastTimeStamp = nowTimeStamp;
         lastTotalRxBytes = nowTotalRxBytes;
-        netSpeed  = speed + " kb/s";
+        netSpeed = speed + " kb/s";
         Log.d(TAG, "getDownloadRate: speed: " + netSpeed);
         Message msg = new Message();
         msg.arg1 = (int) speed;
