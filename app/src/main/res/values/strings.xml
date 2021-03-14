@@ -14,8 +14,11 @@
     <string name="title_activity_base_u_r_l">FullscreenActivity</string>
     <string name="submit">Submit</string>
     <string name="start_background">Start Background</string>
-    <string name="close_background">Close Background</string>
     <string name="start_foreground">Start Foreground</string>
+    <string name="close_background">Close Background</string>
+    <string name="pre_process">Pre Process</string>
+    <string name="start_manually">Start (Manual)</string>
+    <string name="start_automatically">Start (Automatic)</string>
     <string name="enter_url">Enter PyGrid server URL:</string>
     <string name="error_url">url is not valid</string>
     <string name="title_activity_work_info">Running Job Info</string>

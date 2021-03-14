@@ -34,8 +34,7 @@
             android:layout_width="match_parent"
             android:layout_height="fill_parent"
             android:layout_gravity="center_horizontal"
-            android:orientation="vertical"
-            android:visibility="gone">
+            android:orientation="vertical">
 
             <TextView
                 android:id="@+id/step"
@@ -93,40 +92,40 @@
             android:orientation="vertical">
 
             <Button
-                android:id="@+id/button_first"
+                android:id="@+id/btn_preprocess"
                 style="@android:style/Widget.DeviceDefault.Button"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/button_solid"
                 android:padding="10dp"
-                android:text="@string/start_foreground"
+                android:text="@string/pre_process"
                 android:textColor="@color/white"
                 android:textSize="12sp"
                 android:textStyle="bold" />
 
             <Button
-                android:id="@+id/button_second"
+                android:id="@+id/btn_start_manual"
                 style="@android:style/Widget.DeviceDefault.Button"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
                 android:background="@drawable/button_solid"
                 android:padding="10dp"
-                android:text="@string/start_background"
+                android:text="@string/start_manually"
                 android:textColor="@color/white"
                 android:textSize="12sp"
                 android:textStyle="bold" />
 
             <Button
-                android:id="@+id/button_cancel"
+                android:id="@+id/btn_start_auto"
                 style="@android:style/Widget.DeviceDefault.Button"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
                 android:background="@drawable/button_solid"
                 android:backgroundTint="@color/red"
                 android:padding="10dp"
-                android:text="@string/close_background"
+                android:text="@string/start_automatically"
                 android:textColor="@color/white"
                 android:textSize="12sp"
                 android:textStyle="bold" />

@@ -32,6 +32,8 @@ import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.text.format.Formatter;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
@@ -111,6 +113,25 @@ public class MonitorActivity extends AppCompatActivity implements TencentLocatio
         getSignalInfo();
 
         scheduledExecutorService.scheduleAtFixedRate(this::getDownloadRate, 0, 2, TimeUnit.SECONDS);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main, menu);
+        return true;
+    }
+
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.log:
+                Toast.makeText(this, "start logging states", Toast.LENGTH_SHORT).show();
+                break;
+            case R.id.update:
+                Toast.makeText(this, "update prediction model", Toast.LENGTH_SHORT).show();
+                break;
+            default:
+        }
+        return true;
     }
 
     private Handler handler = new Handler(new Handler.Callback() {
