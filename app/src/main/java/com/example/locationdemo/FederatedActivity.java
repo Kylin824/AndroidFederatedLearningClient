@@ -1,14 +1,15 @@
 package com.example.locationdemo;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.XAxis;
@@ -16,17 +17,16 @@ import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 
-import java.io.BufferedReader;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.InetAddress;
-import java.net.Socket;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+
+import io.socket.client.IO;
+import io.socket.client.Socket;
+import io.socket.emitter.Emitter;
 
 public class FederatedActivity extends AppCompatActivity {
 
@@ -35,17 +35,19 @@ public class FederatedActivity extends AppCompatActivity {
     private TextView logArea;
     private int step = 0;
     private static final String TAG = "FederatedActivity";
-
-    //IP地址和端口号
-//    public static String IP_ADDRESS = "127.0.0.1";
-//    public static String IP_ADDRESS = "localhost";
-    public static String IP_ADDRESS = "10.0.2.2"; //模拟器上可以用10.0.2.2代替127.0.0.1和localhost
-    public static int PORT = 8088;
-    Socket socket = null;
-    DataOutputStream outputStream = null;
-    DataInputStream inputStream = null;
-    String messageReceived = null;
+    private String mUsername;
+    private Boolean isConnected = true;
     Handler handler = null;
+
+    private Socket mSocket;
+    {
+        try {
+            mSocket = IO.socket("http://10.0.2.2:8088");  // 模拟器用10.0.2.2对应server的localhost
+        } catch (URISyntaxException e) {
+            Log.e(TAG, "onCreate: " + e.toString());
+        }
+    }
+
     List<Entry> entryList = new ArrayList<>();          //实例化一个List用来保存你的数据
 
     @Override
@@ -55,24 +57,33 @@ public class FederatedActivity extends AppCompatActivity {
         mChart = findViewById(R.id.chart);
         stepText = findViewById(R.id.step);
         logArea = findViewById(R.id.log_area);
+
         // 每点击一次按钮，增加一个点
         Button startManualBtn = findViewById(R.id.btn_start_manual);
         Button startAutoBtn = findViewById(R.id.btn_start_auto);
         Button preProcessBtn = findViewById(R.id.btn_preprocess);
-
-
 
         // X轴所在位置改为下面 默认为上面
         mChart.getXAxis().setPosition(XAxis.XAxisPosition.BOTTOM);
         // 隐藏右边的Y轴
         mChart.getAxisRight().setEnabled(false);
         mChart.getDescription().setEnabled(false);
-
         entryList.add(new Entry(0, 0)); // 其中两个数字对应的分别是 X轴 Y轴
-
         LineDataSet lineDataSet = new LineDataSet(entryList, "loss");
         LineData lineData = new LineData(lineDataSet);
         mChart.setData(lineData);
+
+        // connect to server
+        preProcessBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mUsername = "user" + Math.floor((Math.random() * 1000) + 1);
+                mSocket.on(Socket.EVENT_CONNECT, onConnect);
+                mSocket.on(Socket.EVENT_CONNECT_ERROR, onConnectError);
+                mSocket.on("new message", onNewMessage);
+                mSocket.connect();
+            }
+        });
 
 
         startManualBtn.setOnClickListener(v -> {
@@ -82,8 +93,16 @@ public class FederatedActivity extends AppCompatActivity {
         });
 
         startAutoBtn.setOnClickListener(v -> {
-            Log.d(TAG, "onCreate: start connection thread");
-            new ConnectionThread("这是一条来自安卓客户端的消息").start();
+
+            JSONObject data = new JSONObject();
+            try {
+                data.put("username", "android_0");
+                data.put("message", "this is a msg from android");
+            } catch (JSONException e) {
+                Log.e(TAG, "onCreate: " + e.toString());
+            }
+            mSocket.emit("chatevent", data);
+            Log.d(TAG, "onCreate: android emit!!");
         });
 
         handler = new Handler(msg -> {
@@ -92,6 +111,8 @@ public class FederatedActivity extends AppCompatActivity {
             logArea.append(str + "\n");
             return false;
         });
+
+
     }
 
     private void addEntry(int step) {
@@ -107,55 +128,114 @@ public class FederatedActivity extends AppCompatActivity {
         mChart.animateX(500);
     }
 
+//    private Emitter.Listener onNewMessage = new Emitter.Listener() {
+//        @Override
+//        public void call(final Object... args) {
+//            JSONObject data = (JSONObject) args[0];
+//            String username;
+//            String message;
+//            try {
+//                username = data.getString("username");
+//                message = data.getString("message");
+//                Log.d(TAG, "onCreate: received from server: " + message);
+//                Message msg = new Message();
+//                Bundle bundle = new Bundle();
+//                bundle.putString("data", message);
+//                msg.setData(bundle);
+//                handler.sendMessage(msg);
+//            } catch (JSONException e) {
+//                Log.e(TAG, e.toString());
+//            }
+//        }
+//    };
 
-
-    //新建一个子线程，实现socket通信
-    class ConnectionThread extends Thread {
-
-        String message;
-
-        public ConnectionThread(String msg) {
-            message = msg;
-        }
-
+    private Emitter.Listener onNewMessage = new Emitter.Listener() {
         @Override
-        public void run() {
-            if (socket == null) {
-                try {
-                    socket = new Socket(IP_ADDRESS, PORT);
-                    //获取socket的输入输出流
-                    inputStream = new DataInputStream(socket.getInputStream());
-                    outputStream = new DataOutputStream(socket.getOutputStream());
-                } catch (IOException e) {
-                    Log.d(TAG, "run: " + e.toString());
-                    e.printStackTrace();
-                }
-            }
+        public void call(final Object... args) {
+            JSONObject data = (JSONObject) args[0];
+            String clientId;
+            String clientSocketId;
+            String clientGradient;
+            String extraMsg;
             try {
-                // 发送
-                PrintWriter printWriter = new PrintWriter(outputStream);
-                BufferedReader br = new BufferedReader(new InputStreamReader(inputStream));
-                printWriter.write(message);
-//                printWriter.flush();
-
-                // 接收
-                String info;
-                while ((info = br.readLine()) != null) {
-                    messageReceived = info;
-                    Log.d(TAG, "run: 我是客户端，服务器返回信息：" + messageReceived);;
-                }
+                username = data.getString("username");
+                message = data.getString("message");
+                Log.d(TAG, "onCreate: received from server: " + message);
                 Message msg = new Message();
                 Bundle bundle = new Bundle();
-                bundle.putString("data", messageReceived);
+                bundle.putString("data", message);
                 msg.setData(bundle);
                 handler.sendMessage(msg);
-                br.close();
-                printWriter.close();
-            } catch (IOException e) {
-                Log.d(TAG, "run: " + e.toString());
-                e.printStackTrace();
+            } catch (JSONException e) {
+                Log.e(TAG, e.toString());
             }
         }
+    };
+
+//    private Emitter.Listener onConnect = new Emitter.Listener() {
+//        @Override
+//        public void call(Object... args) {
+//            runOnUiThread(new Runnable() {
+//                @Override
+//                public void run() {
+//                    if (!isConnected) {
+//                        if (null != mUsername)
+//                            mSocket.emit("add user", mUsername);
+//                        Toast.makeText(FederatedActivity.this, "connect success", Toast.LENGTH_SHORT).show();
+//                        isConnected = true;
+//                    }
+//                }
+//            });
+//        }
+//    };
+    private Emitter.Listener onConnect = new Emitter.Listener() {
+        @Override
+        public void call(Object... args) {
+            if (!isConnected) {
+                if (null != mUsername)
+                    mSocket.emit("add user", mUsername);
+                Message msg = new Message();
+                Bundle bundle = new Bundle();
+                bundle.putString("data", "connect success");
+                msg.setData(bundle);
+                handler.sendMessage(msg);
+                isConnected = true;
+            }
+        }
+    };
+
+
+//    private Emitter.Listener onConnectError = new Emitter.Listener() {
+//        @Override
+//        public void call(Object... args) {
+//            runOnUiThread(new Runnable() {
+//                @Override
+//                public void run() {
+//                    Log.e(TAG, "Error connecting");
+//                    Toast.makeText(FederatedActivity.this, "connect error", Toast.LENGTH_SHORT).show();
+//                }
+//            });
+//        }
+//    };
+
+    private Emitter.Listener onConnectError = new Emitter.Listener() {
+        @Override
+        public void call(Object... args) {
+            Message msg = new Message();
+            Bundle bundle = new Bundle();
+            bundle.putString("data", "connect error");
+            msg.setData(bundle);
+            handler.sendMessage(msg);
+            Log.d(TAG, "onCreate: connect error");
+        }
+    };
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mSocket.off("new message", onNewMessage);
+        mSocket.disconnect();
     }
+
 
 }
