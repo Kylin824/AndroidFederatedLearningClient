@@ -16,13 +16,20 @@ import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 
+import org.deeplearning4j.nn.api.Model;
+import org.deeplearning4j.nn.gradient.Gradient;
+import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
+import org.deeplearning4j.optimize.api.TrainingListener;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.nd4j.linalg.api.ndarray.INDArray;
 
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
 
 import io.socket.client.IO;
 import io.socket.client.Socket;
@@ -30,6 +37,7 @@ import io.socket.emitter.Emitter;
 
 public class FederatedActivity extends AppCompatActivity {
 
+    private ExecutorService executor;
     private LineChart mChart;
     private TextView stepText;
     private TextView logArea;
@@ -39,7 +47,7 @@ public class FederatedActivity extends AppCompatActivity {
     private Boolean isConnected = true;
     Handler handler = null;
     private String clientID;
-
+    private FederatedModel localModel;
     private Socket mSocket;
 
     {
@@ -51,6 +59,57 @@ public class FederatedActivity extends AppCompatActivity {
     }
 
     List<Entry> entryList = new ArrayList<>();          //实例化一个List用来保存你的数据
+
+
+    private TrainingListener trainingListener = new TrainingListener() {
+
+        int iterCount;
+
+        @Override
+        public void iterationDone(Model model, int iteration, int epoch) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    double result = model.score();
+                    String message = "\nScore at iteration " + iterCount + " is " + result;
+                    Log.d(TAG, message);
+                    logArea.append(message);
+                    iterCount++;
+                }
+            });
+        }
+
+        @Override
+        public void onEpochStart(Model model) {
+            Log.d(TAG, "onEpochStart: start");
+        }
+
+        @Override
+        public void onEpochEnd(Model model) {
+            Log.d(TAG, "onEpochEnd: end");
+        }
+
+        @Override
+        public void onForwardPass(Model model, List<INDArray> activations) {
+
+        }
+
+        @Override
+        public void onForwardPass(Model model, Map<String, INDArray> activations) {
+
+        }
+
+        @Override
+        public void onGradientCalculation(Model model) {
+            Log.d(TAG, "onGradientCalculation: gradient");
+        }
+
+        @Override
+        public void onBackwardPass(Model model) {
+
+        }
+    };
+    private TrainerDataSource trainerDataSource = new MNISTDataSource(123);;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -190,16 +249,21 @@ public class FederatedActivity extends AppCompatActivity {
     private Emitter.Listener onInit = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
-            JSONObject data = (JSONObject) args[0];
+            JSONObject clientInitObject = (JSONObject) args[0];
+
             try {
-                String initWeights = data.getString("initWeights");
-                Integer epoch = data.getInt("epoch");
-                Integer batchSize = data.getInt("batchSize");
-                Integer clientIndex = data.getInt("clientIndex");
 
-                // init local model by init weights
+                Log.d(TAG, "buildModelFromInitModel: epoch " + clientInitObject.getInt("epoch"));
+                Log.d(TAG, "buildModelFromInitModel: batchSize " + clientInitObject.getInt("batchSize"));
+                Log.d(TAG, "buildModelFromInitModel: clientIndex " + clientInitObject.getInt("clientIndex"));
+                Log.d(TAG, "buildModelFromInitModel: initWeights " + clientInitObject.getJSONObject("initWeights").toString());
 
-                String msgFromServer = "init_weight: " + initWeights + " \n epoch: " + epoch;
+
+                localModel = new MNISTModel(trainingListener);
+
+                localModel.buildModelFromInitModel(clientInitObject);
+
+                String msgFromServer = "client init model";
 
                 Message msg = new Message();
                 Bundle bundle = new Bundle();
@@ -207,6 +271,7 @@ public class FederatedActivity extends AppCompatActivity {
                 msg.setData(bundle);
                 handler.sendMessage(msg);
 
+                // client有多少数据训练
                 Integer trainSize = 60000;
 
                 JSONObject resp = new JSONObject();
@@ -215,8 +280,10 @@ public class FederatedActivity extends AppCompatActivity {
                 } catch (JSONException e) {
                     Log.e(TAG, "onInit: " + e.getMessage());
                 }
-                mSocket.emit("client_ready", resp);
-            } catch (JSONException e) {
+
+                Log.d(TAG, "call: init rest");
+                //mSocket.emit("client_ready", resp);
+            } catch (Exception e) {
                 Log.e(TAG, e.toString());
             }
         }
@@ -226,26 +293,37 @@ public class FederatedActivity extends AppCompatActivity {
     private Emitter.Listener onRequestUpdate = new Emitter.Listener() {
         @Override
         public void call(final Object... args) {
-            JSONObject data = (JSONObject) args[0];
+            JSONObject requestUpdateObj = (JSONObject) args[0];
             try {
-                String modelId = data.getString("modelId");
-                String weights = data.getString("weights");
-                Integer currentRound = data.getInt("currentRound");
+                localModel.updateWeights(requestUpdateObj);
+                int currentRound = requestUpdateObj.getInt("currentRound");
+                Log.d(TAG, "Starting training, round " + currentRound);
 
-                // set global weight to local model weight
+                executor.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        localModel.train(trainerDataSource);
+                        Log.d(TAG, "Train finished");
+//                        runOnUiThread(new Runnable() {
+//                            @Override
+//                            public void run() {
+//                                predictBtn.setEnabled(true);
+//                            }
+//                        });
+                        JSONObject newWeights = localModel.modelToJson();
 
-                // train one round to get new weights
-
-                String newWeights = "weight_client_round_" + currentRound;
-
-                JSONObject resp = new JSONObject();
-                try {
-                    resp.put("roundNumber", currentRound);
-                    resp.put("weights", newWeights);
-                } catch (JSONException e) {
-                    Log.e(TAG, "onRequestUpdate: " + e.getMessage());
-                }
-                mSocket.emit("client_update", resp);
+                        JSONObject resp = new JSONObject();
+                        try {
+                            resp.put("roundNumber", currentRound);
+                            resp.put("weights", newWeights);
+                        } catch (JSONException e) {
+                            Log.e(TAG, "onRequestUpdate: " + e.getMessage());
+                        }
+                        //
+                        Log.d(TAG, "run: have a rest");
+                        //mSocket.emit("client_update", resp);
+                    }
+                });
             } catch (JSONException e) {
                 Log.e(TAG, e.toString());
             }
