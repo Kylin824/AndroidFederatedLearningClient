@@ -20,6 +20,7 @@ import org.deeplearning4j.nn.api.Model;
 import org.deeplearning4j.nn.gradient.Gradient;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.optimize.api.TrainingListener;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.nd4j.linalg.api.ndarray.INDArray;
@@ -47,7 +48,7 @@ public class FederatedActivity extends AppCompatActivity {
     private Boolean isConnected = true;
     Handler handler = null;
     private String clientID;
-    private FederatedModel localModel;
+    private MNISTModel localModel;
     private Socket mSocket;
 
     {
@@ -253,10 +254,16 @@ public class FederatedActivity extends AppCompatActivity {
 
             try {
 
-                Log.d(TAG, "buildModelFromInitModel: epoch " + clientInitObject.getInt("epoch"));
-                Log.d(TAG, "buildModelFromInitModel: batchSize " + clientInitObject.getInt("batchSize"));
-                Log.d(TAG, "buildModelFromInitModel: clientIndex " + clientInitObject.getInt("clientIndex"));
-                Log.d(TAG, "buildModelFromInitModel: initWeights " + clientInitObject.getJSONObject("initWeights").toString());
+                Log.d(TAG, "init epoch: " + clientInitObject.getInt("epoch"));
+                Log.d(TAG, "init batchSize: " + clientInitObject.getInt("batchSize"));
+                Log.d(TAG, "init clientIndex: " + clientInitObject.getInt("clientIndex"));
+                Log.d(TAG, "init laynum: " + clientInitObject.getInt("layerNum"));
+
+//                Log.d(TAG, "init: jsonArray" + clientInitObject.getJSONObject("initWeights").getJSONArray("0_W").get(0));
+                Log.d(TAG, "init arrW0: " + clientInitObject.getJSONArray("arrW0").get(0));
+                Log.d(TAG, "init arrB0: " + clientInitObject.getJSONArray("arrB0").get(0));
+                Log.d(TAG, "init arrW1: " + clientInitObject.getJSONArray("arrW1").get(0));
+                Log.d(TAG, "init arrB1: " + clientInitObject.getJSONArray("arrB1").get(0));
 
 
                 localModel = new MNISTModel(trainingListener);
@@ -282,7 +289,7 @@ public class FederatedActivity extends AppCompatActivity {
                 }
 
                 Log.d(TAG, "call: init rest");
-                //mSocket.emit("client_ready", resp);
+                mSocket.emit("client_ready", resp);
             } catch (Exception e) {
                 Log.e(TAG, e.toString());
             }
@@ -296,6 +303,7 @@ public class FederatedActivity extends AppCompatActivity {
             JSONObject requestUpdateObj = (JSONObject) args[0];
             try {
                 localModel.updateWeights(requestUpdateObj);
+
                 int currentRound = requestUpdateObj.getInt("currentRound");
                 Log.d(TAG, "Starting training, round " + currentRound);
 
@@ -303,25 +311,27 @@ public class FederatedActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         localModel.train(trainerDataSource);
-                        Log.d(TAG, "Train finished");
-//                        runOnUiThread(new Runnable() {
-//                            @Override
-//                            public void run() {
-//                                predictBtn.setEnabled(true);
-//                            }
-//                        });
-                        JSONObject newWeights = localModel.modelToJson();
+                        Log.d(TAG, "Train finished, round " + currentRound);
 
                         JSONObject resp = new JSONObject();
+
                         try {
-                            resp.put("roundNumber", currentRound);
-                            resp.put("weights", newWeights);
+                            JSONArray arrW0 = localModel.get0W();
+                            JSONArray arrW1 = localModel.get1W();
+                            JSONArray arrB0 = localModel.get0B();
+                            JSONArray arrB1 = localModel.get1B();
+
+                            resp.put("currentRound", currentRound);
+                            resp.put("arrW0", arrW0);
+                            resp.put("arrW1", arrW1);
+                            resp.put("arrB0", arrB0);
+                            resp.put("arrB1", arrB1);
                         } catch (JSONException e) {
                             Log.e(TAG, "onRequestUpdate: " + e.getMessage());
                         }
                         //
                         Log.d(TAG, "run: have a rest");
-                        //mSocket.emit("client_update", resp);
+                        mSocket.emit("client_update", resp);
                     }
                 });
             } catch (JSONException e) {

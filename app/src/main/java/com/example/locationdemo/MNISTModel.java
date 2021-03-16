@@ -11,6 +11,7 @@ import org.deeplearning4j.nn.gradient.Gradient;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.nn.weights.WeightInit;
 import org.deeplearning4j.optimize.api.TrainingListener;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.nd4j.evaluation.classification.Evaluation;
@@ -105,11 +106,11 @@ public class MNISTModel implements FederatedModel {
 
         model = new MultiLayerNetwork(conf);
         model.init();
-        Log.d(TAG, "buildModelFromInitModel: before get json");
-        JSONObject initWeights = clientInitObj.getJSONObject("initWeights");
-        Log.d(TAG, "buildModelFromInitModel: json : " + initWeights.toString());
-        Log.d(TAG, "buildModelFromInitModel: " + initWeights.getInt("layerNum"));
-        model = ModelUtils.jsonToModel(initWeights, model);
+
+        model = ModelUtils.updateModel(clientInitObj, model, 2);
+
+        Log.d(TAG, "buildModelFromInitModel 0_W first element: " + model.getParam("0_W").getRow(0).getFloat(0));
+
         model.setListeners(mIterationListener);  //print the score with every iteration
 
     }
@@ -143,8 +144,9 @@ public class MNISTModel implements FederatedModel {
     @Override
     public void updateWeights(JSONObject requestUpdateObj) {
         try {
-            JSONObject jsonObject = (JSONObject) requestUpdateObj.get("weights");
-            model = ModelUtils.jsonToModel(jsonObject, model);
+            model = ModelUtils.updateModel(requestUpdateObj, model, 2);
+            int round = requestUpdateObj.getInt("currentRound");
+            Log.d(TAG, "updateWeights: update local weight success at round: " + round);
         }
         catch (Exception e) {
             Log.d(TAG, "updateWeights: " + e.getMessage());
@@ -169,6 +171,18 @@ public class MNISTModel implements FederatedModel {
         return null;
     }
 
+    public JSONArray get0W() throws JSONException {
+        return ModelUtils.model0WToJsonArray(model);
+    }
+    public JSONArray get1W() throws JSONException {
+        return ModelUtils.model1WToJsonArray(model);
+    }
+    public JSONArray get0B() throws JSONException {
+        return ModelUtils.model0BToJsonArray(model);
+    }
+    public JSONArray get1B() throws JSONException {
+        return ModelUtils.model1BToJsonArray(model);
+    }
     @Override
     public void updateWeights(INDArray remoteGradient) {
 
