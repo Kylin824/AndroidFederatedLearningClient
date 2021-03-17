@@ -37,8 +37,8 @@ public class MNISTModel implements FederatedModel {
     private TrainingListener mIterationListener;
     private MultiLayerNetwork model;
 
-    private DataSetIterator mnistTrain = new MnistDataSetIterator(BATCH_SIZE, true, rngSeed);
-    private DataSetIterator mnistTest = new MnistDataSetIterator(BATCH_SIZE, false, rngSeed);
+    private DataSetIterator mnistTrain = new MnistDataSetIteratorForAndroid(BATCH_SIZE, true, rngSeed);
+//    private DataSetIterator mnistTest = new MnistDataSetIteratorForAndroid(BATCH_SIZE, false, rngSeed);
 
 
     public MNISTModel(TrainingListener trainingListener) throws IOException {
