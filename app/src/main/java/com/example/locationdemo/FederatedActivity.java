@@ -17,8 +17,6 @@ import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 
 import org.deeplearning4j.nn.api.Model;
-import org.deeplearning4j.nn.gradient.Gradient;
-import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.optimize.api.TrainingListener;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -29,7 +27,6 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -43,7 +40,6 @@ public class FederatedActivity extends AppCompatActivity {
     private LineChart mChart;
     private TextView stepText;
     private TextView logArea;
-    private int step = 0;
     private static final String TAG = "FederatedActivity";
     private String mUsername;
     private Boolean isConnected = true;
@@ -51,6 +47,7 @@ public class FederatedActivity extends AppCompatActivity {
     private String clientID;
     private MNISTModel localModel;
     private Socket mSocket;
+    private int currentRound = 0;
 
     {
         try {
@@ -69,16 +66,16 @@ public class FederatedActivity extends AppCompatActivity {
 
         @Override
         public void iterationDone(Model model, int iteration, int epoch) {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    double result = model.score();
-                    String message = "\nScore at iteration " + iterCount + " is " + result;
-                    Log.d(TAG, message);
-                    logArea.append(message);
-                    iterCount++;
-                }
-            });
+//            runOnUiThread(new Runnable() {
+//                @Override
+//                public void run() {
+//                    double result = model.score();
+//                    String message = "\nScore at iteration " + iterCount + " is " + result;
+//                    Log.d(TAG, message);
+////                    logArea.append(message);
+//                    iterCount++;
+//                }
+//            });
         }
 
         @Override
@@ -88,7 +85,13 @@ public class FederatedActivity extends AppCompatActivity {
 
         @Override
         public void onEpochEnd(Model model) {
-            Log.d(TAG, "onEpochEnd: end");
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    logArea.append("round " + currentRound + " train end \n");
+                    Log.d(TAG, "onEpochEnd: end");
+                }
+            });
         }
 
         @Override
@@ -183,11 +186,10 @@ public class FederatedActivity extends AppCompatActivity {
 
     }
 
-    private void addEntry(int step) {
+    private void addEntry(int currentRound, double score) {
         LineData lineData = mChart.getData();
-        float ydata = (float) (Math.random() * 20);
-        lineData.addEntry(new Entry(step, ydata), 0);
-        mChart.setVisibleXRangeMaximum(step + 5);
+        lineData.addEntry(new Entry(currentRound, (float)score), 0);
+        mChart.setVisibleXRangeMaximum(currentRound + 5);
         mChart.notifyDataSetChanged();
         mChart.invalidate();
         mChart.animateX(500);
@@ -306,11 +308,24 @@ public class FederatedActivity extends AppCompatActivity {
             JSONObject requestUpdateObj = (JSONObject) args[0];
             try {
                 localModel.updateWeights(requestUpdateObj);
+                currentRound = requestUpdateObj.getInt("currentRound");
 
-                int currentRound = requestUpdateObj.getInt("currentRound");
+                double testLoss = requestUpdateObj.getDouble("testLoss");
+                double testAcc = requestUpdateObj.getDouble("testAcc");
+
                 Log.d(TAG, "Starting training, round " + currentRound);
 
-                train(currentRound);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        String msg = "loss: " + testLoss + "\nacc: " + testAcc + "\n";
+                        logArea.append(msg);
+                        stepText.setText("Round: " + currentRound);
+                        addEntry(currentRound, testAcc);
+                    }
+                });
+
+                trainOneRound(currentRound);
 
             } catch (JSONException e) {
                 Log.e(TAG, e.toString());
@@ -318,7 +333,7 @@ public class FederatedActivity extends AppCompatActivity {
         }
     };
 
-    private void train(int currentRound) {
+    private void trainOneRound(int currentRound) {
         executor.execute(new Runnable() {
             @Override
             public void run() {
@@ -344,7 +359,7 @@ public class FederatedActivity extends AppCompatActivity {
                 }
                 //
                 Log.d(TAG, "run: have a rest");
-                // mSocket.emit("client_update", resp);
+                 mSocket.emit("client_update", resp);
             }
         });
     }
@@ -354,13 +369,19 @@ public class FederatedActivity extends AppCompatActivity {
         public void call(final Object... args) {
             JSONObject req = (JSONObject) args[0];
             try {
-                String finalGlobalAcc = req.getString("finalGlobalTestAcc");
+                double finalGlobalAcc = req.getDouble("testAcc");
+                double finalGlobalLoss = req.getDouble("testLoss");
 
-                Message msg = new Message();
-                Bundle bundle = new Bundle();
-                bundle.putString("data", "final global acc: " + finalGlobalAcc);
-                msg.setData(bundle);
-                handler.sendMessage(msg);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        String msg = "final loss: " + finalGlobalLoss + " \n acc: " + finalGlobalAcc + " \n";
+                        logArea.append(msg);
+                        addEntry(currentRound + 1, finalGlobalAcc);
+                        logArea.append("train task finish !!!");
+                    }
+                });
+                // 收尾工作
 
             } catch (JSONException e) {
                 Log.e(TAG, e.toString());

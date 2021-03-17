@@ -18,7 +18,9 @@ import java.util.Random;
 
 public class MnistDataFetcherForAndroid extends BaseDataFetcher {
 
-    public static final int NUM_EXAMPLES = 60000;
+//    public static final int NUM_EXAMPLES = 60000;
+    public static final int NUM_EXAMPLES = 6464;
+
     public static final int NUM_EXAMPLES_TEST = 10000;
 
     protected static final long CHECKSUM_TRAIN_FEATURES = 2094436111L;
