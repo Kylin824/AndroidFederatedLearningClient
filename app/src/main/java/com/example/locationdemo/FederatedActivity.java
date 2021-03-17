@@ -41,10 +41,7 @@ public class FederatedActivity extends AppCompatActivity {
     private TextView stepText;
     private TextView logArea;
     private static final String TAG = "FederatedActivity";
-    private String mUsername;
-    private Boolean isConnected = true;
     Handler handler = null;
-    private String clientID;
     private MNISTModel localModel;
     private Socket mSocket;
     private int currentRound = 0;
@@ -62,7 +59,7 @@ public class FederatedActivity extends AppCompatActivity {
 
     private TrainingListener trainingListener = new TrainingListener() {
 
-        int iterCount;
+//        int iterCount;
 
         @Override
         public void iterationDone(Model model, int iteration, int epoch) {
