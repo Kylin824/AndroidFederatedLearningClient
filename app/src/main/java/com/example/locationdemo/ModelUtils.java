@@ -83,10 +83,10 @@ public class ModelUtils {
 
         key = "1_W";
         param = model.getParam(key);
-        Log.d(TAG, "updateModel: row " +param.rows() + " col : " + param.columns());
+//        Log.d(TAG, "updateModel: row " +param.rows() + " col : " + param.columns());
         for (int j = 0; j < param.rows(); j++) {
             for (int k = 0; k < param.columns(); k++) {
-                Log.d(TAG, "updateModel: idx " + (j * param.columns() + k));
+//                Log.d(TAG, "updateModel: idx " + (j * param.columns() + k));
                 param.putScalar(j, k, (double)arrW1.get(j * param.columns() + k));
             }
         }

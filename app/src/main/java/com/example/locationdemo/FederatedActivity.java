@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import io.socket.client.IO;
 import io.socket.client.Socket;
@@ -134,6 +135,8 @@ public class FederatedActivity extends AppCompatActivity {
         LineDataSet lineDataSet = new LineDataSet(entryList, "loss");
         LineData lineData = new LineData(lineDataSet);
         mChart.setData(lineData);
+
+        executor = Executors.newSingleThreadExecutor();
 
         // connect to server
         preProcessBtn.setOnClickListener(new View.OnClickListener() {
@@ -307,38 +310,44 @@ public class FederatedActivity extends AppCompatActivity {
                 int currentRound = requestUpdateObj.getInt("currentRound");
                 Log.d(TAG, "Starting training, round " + currentRound);
 
-                executor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        localModel.train(trainerDataSource);
-                        Log.d(TAG, "Train finished, round " + currentRound);
+                train(currentRound);
 
-                        JSONObject resp = new JSONObject();
-
-                        try {
-                            JSONArray arrW0 = localModel.get0W();
-                            JSONArray arrW1 = localModel.get1W();
-                            JSONArray arrB0 = localModel.get0B();
-                            JSONArray arrB1 = localModel.get1B();
-
-                            resp.put("currentRound", currentRound);
-                            resp.put("arrW0", arrW0);
-                            resp.put("arrW1", arrW1);
-                            resp.put("arrB0", arrB0);
-                            resp.put("arrB1", arrB1);
-                        } catch (JSONException e) {
-                            Log.e(TAG, "onRequestUpdate: " + e.getMessage());
-                        }
-                        //
-                        Log.d(TAG, "run: have a rest");
-                        mSocket.emit("client_update", resp);
-                    }
-                });
             } catch (JSONException e) {
                 Log.e(TAG, e.toString());
             }
         }
     };
+
+    private void train(int currentRound) {
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                Log.d(TAG, "execute: train start!");
+                localModel.train(1);
+                Log.d(TAG, "run: train finish!");
+
+                JSONObject resp = new JSONObject();
+
+                try {
+                    JSONArray arrW0 = localModel.get0W();
+                    JSONArray arrW1 = localModel.get1W();
+                    JSONArray arrB0 = localModel.get0B();
+                    JSONArray arrB1 = localModel.get1B();
+
+                    resp.put("currentRound", currentRound);
+                    resp.put("arrW0", arrW0);
+                    resp.put("arrW1", arrW1);
+                    resp.put("arrB0", arrB0);
+                    resp.put("arrB1", arrB1);
+                } catch (JSONException e) {
+                    Log.e(TAG, "onRequestUpdate: " + e.getMessage());
+                }
+                //
+                Log.d(TAG, "run: have a rest");
+                // mSocket.emit("client_update", resp);
+            }
+        });
+    }
 
     private Emitter.Listener onStopAndEval = new Emitter.Listener() {
         @Override

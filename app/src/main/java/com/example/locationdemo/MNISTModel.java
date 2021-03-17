@@ -3,6 +3,7 @@ package com.example.locationdemo;
 import android.util.Log;
 
 import org.deeplearning4j.datasets.iterator.impl.ListDataSetIterator;
+import org.deeplearning4j.datasets.iterator.impl.MnistDataSetIterator;
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
 import org.deeplearning4j.nn.conf.layers.DenseLayer;
@@ -22,6 +23,7 @@ import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
 import org.nd4j.linalg.learning.config.Nesterovs;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
 
+import java.io.IOException;
 import java.util.List;
 
 public class MNISTModel implements FederatedModel {
@@ -30,11 +32,16 @@ public class MNISTModel implements FederatedModel {
     private static final int BATCH_SIZE = 64;
     private static final int OUTPUT_NUM = 10;
     private static final int N_EPOCHS = 1;
+    private static final int rngSeed = 123;
 
     private TrainingListener mIterationListener;
     private MultiLayerNetwork model;
 
-    public MNISTModel(TrainingListener trainingListener) {
+    private DataSetIterator mnistTrain = new MnistDataSetIterator(BATCH_SIZE, true, rngSeed);
+    private DataSetIterator mnistTest = new MnistDataSetIterator(BATCH_SIZE, false, rngSeed);
+
+
+    public MNISTModel(TrainingListener trainingListener) throws IOException {
 
         mIterationListener = trainingListener;
     }
@@ -92,12 +99,12 @@ public class MNISTModel implements FederatedModel {
                 .list()
                 .layer(new DenseLayer.Builder() //create the first, input layer with xavier initialization
                         .nIn(numRows * numColumns)
-                        .nOut(1000)
+                        .nOut(100)
                         .activation(Activation.RELU)
 //                        .weightInit(WeightInit.XAVIER)
                         .build())
                 .layer(new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD) //create hidden layer
-                        .nIn(1000)
+                        .nIn(100)
                         .nOut(OUTPUT_NUM)
                         .activation(Activation.SOFTMAX)
 //                        .weightInit(WeightInit.XAVIER)
@@ -132,13 +139,8 @@ public class MNISTModel implements FederatedModel {
     }
 
     @Override
-    public void train(TrainerDataSource trainerDataSource) {
-        DataSet trainingData = trainerDataSource.getTrainingData(BATCH_SIZE);
-        List<DataSet> listDs = trainingData.asList();
-        DataSetIterator mnistTrain = new ListDataSetIterator(listDs, BATCH_SIZE);
-        for (int i = 0; i < N_EPOCHS; i++) {
-            model.fit(mnistTrain);
-        }
+    public void train(int numEpochs) {
+        model.fit(mnistTrain, numEpochs);
     }
 
     @Override

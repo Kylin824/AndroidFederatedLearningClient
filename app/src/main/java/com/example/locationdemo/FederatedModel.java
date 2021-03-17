@@ -20,7 +20,8 @@ public interface FederatedModel {
 
     void buildModelFromInitModel(JSONObject clientInitObj) throws Exception;
 
-    void train(TrainerDataSource trainerDataSource);
+    // void train(TrainerDataSource trainerDataSource);
+    void train(int numEpochs);
 
     String evaluate(TrainerDataSource trainerDataSource);
 
