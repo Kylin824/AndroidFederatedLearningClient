@@ -61,7 +61,7 @@ public class FederatedActivity extends AppCompatActivity {
 
     private TrainingListener trainingListener = new TrainingListener() {
 
-        int iterCount;
+//        int iterCount;
 
         @Override
         public void iterationDone(Model model, int iteration, int epoch) {
@@ -87,7 +87,9 @@ public class FederatedActivity extends AppCompatActivity {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    double result = model.score();
                     logArea.append("round " + currentRound + " train end \n");
+                    logArea.append("local loss: " + result + " \n");
                     Log.d(TAG, "onEpochEnd: end");
                 }
             });
@@ -105,7 +107,7 @@ public class FederatedActivity extends AppCompatActivity {
 
         @Override
         public void onGradientCalculation(Model model) {
-            Log.d(TAG, "onGradientCalculation: gradient");
+//            Log.d(TAG, "onGradientCalculation: gradient");
         }
 
         @Override
@@ -317,9 +319,9 @@ public class FederatedActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        String msg = "loss: " + testLoss + "\nacc: " + testAcc + "\n";
+                        String msg = "global acc: " + testAcc + "\n";
                         logArea.append(msg);
-                        stepText.setText("Round: " + currentRound);
+                        stepText.setText(getString(R.string.current_round, currentRound));
                         addEntry(currentRound, testAcc);
                     }
                 });

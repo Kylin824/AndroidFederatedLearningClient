@@ -3,7 +3,6 @@ package com.example.locationdemo;
 import android.util.Log;
 
 import org.deeplearning4j.datasets.iterator.impl.ListDataSetIterator;
-import org.deeplearning4j.datasets.iterator.impl.MnistDataSetIterator;
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
 import org.deeplearning4j.nn.conf.layers.DenseLayer;
@@ -37,7 +36,8 @@ public class MNISTModel implements FederatedModel {
     private TrainingListener mIterationListener;
     private MultiLayerNetwork model;
 
-    private DataSetIterator mnistTrain = new MnistDataSetIteratorForAndroid(BATCH_SIZE, true, rngSeed);
+    private DataSetIterator mnistTrain = new MnistDataSetIteratorForAndroid(BATCH_SIZE, true, rngSeed, 6464, false);
+//    private DataSetIterator mnistTrainNONIID = new MnistDataSetIteratorForAndroid(BATCH_SIZE, true, rngSeed, 6464, true);
 //    private DataSetIterator mnistTest = new MnistDataSetIteratorForAndroid(BATCH_SIZE, false, rngSeed);
 
 
