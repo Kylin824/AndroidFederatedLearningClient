@@ -31,12 +31,12 @@ public class MNISTModel implements FederatedModel {
     private static final int BATCH_SIZE = 64;
     private static final int OUTPUT_NUM = 10;
     private static final int N_EPOCHS = 1;
-    private static final int rngSeed = 123;
+    private static final int rngSeed = 42;
 
     private TrainingListener mIterationListener;
     private MultiLayerNetwork model;
 
-    private DataSetIterator mnistTrain = new MnistDataSetIteratorForAndroid(BATCH_SIZE, true, rngSeed, 6464, false);
+    private DataSetIterator mnistTrain = new MnistDataSetIteratorForAndroid(BATCH_SIZE, true, rngSeed, 6464, true);
 //    private DataSetIterator mnistTrainNONIID = new MnistDataSetIteratorForAndroid(BATCH_SIZE, true, rngSeed, 6464, true);
 //    private DataSetIterator mnistTest = new MnistDataSetIteratorForAndroid(BATCH_SIZE, false, rngSeed);
 

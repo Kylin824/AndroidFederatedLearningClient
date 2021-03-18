@@ -50,7 +50,8 @@ public class FederatedActivity extends AppCompatActivity {
 
     {
         try {
-            mSocket = IO.socket("http://10.0.2.2:9092");  // 模拟器要连接里面的wifi！用10.0.2.2对应server的localhost
+//            mSocket = IO.socket("http://10.0.2.2:9092");  // 模拟器要连接里面的wifi！用10.0.2.2对应server的localhost
+            mSocket = IO.socket("http://192.168.1.46:9092");  // 模拟器要连接里面的wifi！用10.0.2.2对应server的localhost
         } catch (URISyntaxException e) {
             Log.e(TAG, "onCreate: " + e.toString());
         }
@@ -91,6 +92,7 @@ public class FederatedActivity extends AppCompatActivity {
                     logArea.append("round " + currentRound + " train end \n");
                     logArea.append("local loss: " + result + " \n");
                     Log.d(TAG, "onEpochEnd: end");
+                    addEntry(currentRound, result);
                 }
             });
         }
@@ -322,7 +324,7 @@ public class FederatedActivity extends AppCompatActivity {
                         String msg = "global acc: " + testAcc + "\n";
                         logArea.append(msg);
                         stepText.setText(getString(R.string.current_round, currentRound));
-                        addEntry(currentRound, testAcc);
+//                        addEntry(currentRound, testAcc);
                     }
                 });
 
@@ -378,8 +380,7 @@ public class FederatedActivity extends AppCompatActivity {
                     public void run() {
                         String msg = "final loss: " + finalGlobalLoss + " \n acc: " + finalGlobalAcc + " \n";
                         logArea.append(msg);
-                        addEntry(currentRound + 1, finalGlobalAcc);
-                        logArea.append("train task finish !!!");
+                        logArea.append("train task finish !!! \n");
                     }
                 });
                 // 收尾工作
