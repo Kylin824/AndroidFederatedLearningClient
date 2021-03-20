@@ -28,9 +28,6 @@
         <activity
             android:name=".DrawActivity"
             android:parentActivityName=".MainActivity" />
-        <activity
-            android:name=".MonitorActivity"
-            android:parentActivityName=".MainActivity" />
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
