@@ -50,14 +50,14 @@ public class FederatedActivity extends AppCompatActivity {
 
     {
         try {
-//            mSocket = IO.socket("http://10.0.2.2:9092");  // 模拟器要连接里面的wifi！用10.0.2.2对应server的localhost
-            mSocket = IO.socket("http://192.168.1.46:9092");  // 模拟器要连接里面的wifi！用10.0.2.2对应server的localhost
+            mSocket = IO.socket("http://10.0.2.2:9092");  // 模拟器要连接里面的wifi！用10.0.2.2对应server的localhost
+//            mSocket = IO.socket("http://192.168.1.46:9092");
         } catch (URISyntaxException e) {
             Log.e(TAG, "onCreate: " + e.toString());
         }
     }
 
-    List<Entry> entryList = new ArrayList<>();          //实例化一个List用来保存你的数据
+    List<Entry> entryList = new ArrayList<>();          //实例化一个List用来保存数据
 
 
     private TrainingListener trainingListener = new TrainingListener() {

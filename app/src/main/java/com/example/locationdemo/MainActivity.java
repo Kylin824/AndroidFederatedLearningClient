@@ -29,10 +29,10 @@ public class MainActivity extends AppCompatActivity {
         drawBtn = findViewById(R.id.draw_btn);
         trainBtn = findViewById(R.id.train_btn);
 
-        monitorBtn.setOnClickListener(v -> {
-            Intent intent = new Intent(MainActivity.this, MonitorActivity.class);
-            startActivity(intent);
-        });
+//        monitorBtn.setOnClickListener(v -> {
+//            Intent intent = new Intent(MainActivity.this, MonitorActivity.class);
+//            startActivity(intent);
+//        });
 
         drawBtn.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, DrawActivity.class);
