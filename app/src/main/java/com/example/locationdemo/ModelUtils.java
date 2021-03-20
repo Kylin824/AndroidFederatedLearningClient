@@ -10,6 +10,9 @@ import org.nd4j.linalg.api.ndarray.INDArray;
 
 public class ModelUtils {
 
+    private ModelUtils() {
+    }
+
     private static final String TAG = "ModelUtils";
 
     public static JSONArray model0WToJsonArray(MultiLayerNetwork model) throws JSONException {

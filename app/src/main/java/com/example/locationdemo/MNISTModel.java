@@ -27,7 +27,7 @@ import java.util.List;
 
 public class MNISTModel implements FederatedModel {
 
-    private static final String TAG = MNISTModel.class.getSimpleName();
+    private static final String TAG = "MNISTModel";
     private static final int BATCH_SIZE = 64;
     private static final int OUTPUT_NUM = 10;
     private static final int N_EPOCHS = 1;
@@ -116,7 +116,7 @@ public class MNISTModel implements FederatedModel {
 
         model = ModelUtils.updateModel(clientInitObj, model, 2);
 
-        Log.d(TAG, "buildModelFromInitModel 0_W first element: " + model.getParam("0_W").getRow(0).getFloat(0));
+//        Log.d(TAG, "buildModelFromInitModel 0_W first element: " + model.getParam("0_W").getRow(0).getFloat(0));
 
         model.setListeners(mIterationListener);  //print the score with every iteration
 
@@ -185,6 +185,7 @@ public class MNISTModel implements FederatedModel {
     public JSONArray get1B() throws JSONException {
         return ModelUtils.model1BToJsonArray(model);
     }
+
     @Override
     public void updateWeights(INDArray remoteGradient) {
 

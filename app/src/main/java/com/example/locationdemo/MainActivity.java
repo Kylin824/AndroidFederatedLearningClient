@@ -15,7 +15,6 @@ import pub.devrel.easypermissions.EasyPermissions;
 
 public class MainActivity extends AppCompatActivity {
 
-    private Button monitorBtn;
     private Button drawBtn;
     private Button trainBtn;
     private static final String TAG = "MainActivity";
@@ -25,7 +24,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        monitorBtn = findViewById(R.id.monitor_btn);
         drawBtn = findViewById(R.id.draw_btn);
         trainBtn = findViewById(R.id.train_btn);
 
