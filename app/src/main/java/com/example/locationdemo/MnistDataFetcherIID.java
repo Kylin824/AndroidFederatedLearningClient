@@ -52,7 +52,7 @@ public class MnistDataFetcherIID extends BaseDataFetcher {
 
         // 需要将数据集预先放到这个位置
 //        String MNIST_ROOT = "/storage/emulated/0/Download/MNIST";
-        String MNIST_ROOT = "/storage/self/primary/MNIST";
+        String MNIST_ROOT = "/storage/self/primary/Download/MNIST";
 
         String images;
         String labels;
